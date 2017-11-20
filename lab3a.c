@@ -42,25 +42,23 @@ int main(int argc, char* argv[]){
 	}
 	// SUPERBLOCK INFO
 	// read file block
-	void *p_superblock;
-	p_superblock = calloc(1024, sizeof(char));
-	pread(ifd, p_superblock, 1024, 1024);
-	struct ext2_super_block* superblock;
-	superblock = (struct ext2_super_block *)&p_superblock;
+	struct ext2_super_block superblock;
+	
+	pread(ifd, &superblock, 1024, 1024);
 	// 2.
-	int n_blocks = superblock->s_blocks_count;
+	int n_blocks = superblock.s_blocks_count;
 	// 3.
-	int n_inodes = superblock->s_inodes_count;
+	int n_inodes = superblock.s_inodes_count;
 	// 4.
-	int block_size = 1 << superblock->s_log_block_size;
+	int block_size = 1 << superblock.s_log_block_size;
 	// 5.
-	int inode_size = superblock->s_inode_size;
+	int inode_size = superblock.s_inode_size;
 	// 6.
-	int blocks_per_group = superblock->s_blocks_per_group;
+	int blocks_per_group = superblock.s_blocks_per_group;
 	// 7.
-	int inodes_per_group = superblock->s_inodes_per_group;
+	int inodes_per_group = superblock.s_inodes_per_group;
 	// 8.
-	int first_inode = superblock->s_first_ino;
+	int first_inode = superblock.s_first_ino;
 	fprintf(stdout, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d", n_blocks, n_inodes, block_size, inode_size, blocks_per_group, inodes_per_group, first_inode);		
 }
 	
