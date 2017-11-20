@@ -20,9 +20,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define BLOCKSIZE 1024
+
 int ifd;
 char* img_file;
 struct ext2_super_block superblock;
+struct ext2_group_desc group_desc;
 
 void superblock_summary(){
 	pread(ifd, &superblock, 1024, 1024);
@@ -31,7 +34,7 @@ void superblock_summary(){
 	// 3.
 	int n_inodes = superblock.s_inodes_count;
 	// 4.
-	int block_size = 1 << superblock.s_log_block_size;
+	int block_size = 1024 << superblock.s_log_block_size;
 	// 5.
 	int inode_size = superblock.s_inode_size;
 	// 6.
@@ -41,6 +44,19 @@ void superblock_summary(){
 	// 8.
 	int first_inode = superblock.s_first_ino;
 	fprintf(stdout, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d", n_blocks, n_inodes, block_size, inode_size, blocks_per_group, inodes_per_group, first_inode);		
+
+}
+
+void group_summary(){
+	int offset = 1024;
+	int group_num = 0;
+	pread(ifd, &group_desc, 2048);
+	
+	while(1){
+		// get group_desc
+		
+		fprintf(stdout, "GROUP");	
+	}
 
 }
 
