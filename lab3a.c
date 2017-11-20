@@ -15,6 +15,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include "ext2_fs.h"
 
 int ifd;
 
@@ -39,6 +40,27 @@ int main(int argc, char* argv[]){
 	    exit(2);
 	}
 
-	
+	// SUPERBLOCK INFO
+	// read file block
+	void *p_superblock;
+	p_superblock = calloc(1024, sizeof(char));
+	pread(ifd, p_superblock, 1024, 1024);
+	struct ext2_super_block superblock;
+	superblock = (ext2_super_block *)&p_superblock;
+	// 2.
+	int n_blocks = superblock.s_blocks_count;
+	// 3.
+	int n_indoe = superblock.s_inodes_count;
+	// 4.
+	int block_size = 1 << superblock.s_log_block_size;
+	// 5.
+	int inode_size = super_block.s_inode_size;
+	// 6.
+	int blocks_per_group = superblock.s_blocks_per_group;
+	// 7.
+	int inodes_per_group = superblock.s_inodes_per_group;
+	// 8.
+	int first_inode = superblock.s_first_ino;
+		
 }
 	
