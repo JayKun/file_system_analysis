@@ -21,29 +21,10 @@
 #include <fcntl.h>
 
 int ifd;
+char* img_file;
+struct ext2_super_block superblock;
 
-
-int main(int argc, char* argv[]){
-	char * img_name = NULL; 
-	if(argc != 2)
-		//print_usage_details();
-	
-	img_name = (char*)malloc(strlen(argv[1])+1);
-	img_name = argv[1];
-
-	fprintf(stderr, "%s\n", img_name);
-	ifd = open(img_name, O_RDONLY);
-	int errRead = errno;
-
-	if(ifd <0){
-	    fprintf(stderr, "ERROR opening image file. Failed to open %s\n", img_name);
-	    fprintf(stderr, "%s\n", strerror(errRead));
-	    exit(2);
-	}
-	// SUPERBLOCK INFO
-	// read file block
-	struct ext2_super_block superblock;
-	
+void superblock_summary(){
 	pread(ifd, &superblock, 1024, 1024);
 	// 2.
 	int n_blocks = superblock.s_blocks_count;
@@ -60,5 +41,25 @@ int main(int argc, char* argv[]){
 	// 8.
 	int first_inode = superblock.s_first_ino;
 	fprintf(stdout, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d", n_blocks, n_inodes, block_size, inode_size, blocks_per_group, inodes_per_group, first_inode);		
+
+}
+
+int main(int argc, char* argv[]){
+	img_file = NULL; 
+	if(argc != 2)
+		//print_usage_details();
+	
+	img_file = (char*)malloc(strlen(argv[1])+1);
+	img_file = argv[1];
+
+	ifd = open(img_file, O_RDONLY);
+	int errRead = errno;
+
+	if(ifd <0){
+	    fprintf(stderr, "ERROR opening image file. Failed to open %s\n", img_file);
+	    fprintf(stderr, "%s\n", strerror(errRead));
+	    exit(2);
+	}
+	superblock_summary();
 }
 	
