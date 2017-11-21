@@ -1,11 +1,14 @@
 /* Team Names:
  * 	Arti Patankar
+ * 	604594513
+ * 	artipatankar@ucla.edu
  * 	
  * 	Jun Kai Ong
  *	604606304
  *	junkai@g.ucla.edu
  * 
  */
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,39 +46,93 @@ void superblock_summary(){
 	int inodes_per_group = superblock.s_inodes_per_group;
 	// 8.
 	int first_inode = superblock.s_first_ino;
-	fprintf(stdout, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d", n_blocks, n_inodes, block_size, inode_size, blocks_per_group, inodes_per_group, first_inode);		
+	fprintf(stdout, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d\n", n_blocks, n_inodes, block_size, inode_size, blocks_per_group, inodes_per_group, first_inode);		
 
 }
 
-void group_summary(){
-	int offset = 1024;
+void group_summary() {
+// case of only 1 group
+	// 2.
 	int group_num = 0;
-	pread(ifd, &group_desc, 2048);
+	// 3.
+	int n_blocks = superblock.s_blocks_count;
+	// 4.
+	int n_inodes = superblock.s_inodes_count;
+	// 5.
+	int n_free_blocks = superblock.s_free_blocks_count;
+	// 6.
+	int n_free_inodes = superblock.s_free_inodes_count;
+
+	pread(ifd, &group_desc, 32, 2048);
+	// 7.
+	int block_bitmap_num = group_desc.bg_block_bitmap;
+	// 8.
+	int inode_bitmap_num = group_desc.bg_inode_bitmap;
+	// 9.
+	int inode_table_num = group_desc.bg_inode_table;
+	fprintf(stdout, "GROUP,%d,%d,%d,%d,%d,%d,%d,%d\n", group_num, n_blocks, n_inodes, n_free_blocks, n_free_inodes, block_bitmap_num, inode_bitmap_num, inode_table_num);	
+}
+
+void bfree() {
+	int num_bytes = superblock.s_blocks_count / 8;
+	char* block_array = (char*)malloc(num_bytes);
+	pread(ifd, block_array, num_bytes, group_desc.bg_block_bitmap * (1024 << superblock.s_log_block_size)); // offset is block number * block size
 	
-	while(1){
-		// get group_desc
-		
-		fprintf(stdout, "GROUP");	
+	for (int i = 0; i < num_bytes; i++) {
+		for (int j = 0; j < 8; j++) {
+			int temp = (block_array[i] >> j) & 1;
+			if (temp == 0) {
+				// int block_num = (i * 8) + (7 - j);
+				int block_num = (i * 8) + (1 + j); // bits not sequentially assigned
+				fprintf(stdout, "BFREE,%d\n", block_num); 
+			}
+		}	
 	}
 
+	free(block_array);
 }
 
-int main(int argc, char* argv[]){
-	img_file = NULL; 
-	if(argc != 2)
-		//print_usage_details();
+void ifree() {
+	int num_bytes = superblock.s_blocks_count / 8;
+	char* inode_array = (char*)malloc(num_bytes);
+	pread(ifd, inode_array, num_bytes, group_desc.bg_inode_bitmap * (1024 << superblock.s_log_block_size)); // offset is block number * block size
 	
-	img_file = (char*)malloc(strlen(argv[1])+1);
+	for (int i = 0; i < num_bytes; i++) {
+		for (int j = 0; j < 8; j++) {
+			int temp = (inode_array[i] >> j) & 1;
+			if (temp == 0) {
+				// int inode_num = (i * 8) + (7 - j);
+				int inode_num = (i * 8) + (1 + j); // bits not sequentially assigned
+				fprintf(stdout, "IFREE,%d\n", inode_num);
+			}
+		}
+	}
+	
+	free(inode_array);
+
+}
+
+int main(int argc, char* argv[]) {
+	img_file = NULL; 
+	if(argc != 2) {
+		fprintf(stderr, "Correct usage: ./lab3a [filename]\n");
+		exit(1);
+	}
+	
+	img_file = (char*)malloc(strlen(argv[1]) + 1);
 	img_file = argv[1];
 
 	ifd = open(img_file, O_RDONLY);
 	int errRead = errno;
 
-	if(ifd <0){
-	    fprintf(stderr, "ERROR opening image file. Failed to open %s\n", img_file);
-	    fprintf(stderr, "%s\n", strerror(errRead));
-	    exit(2);
+	if(ifd < 0) {
+		fprintf(stderr, "ERROR opening image file. Failed to open %s\n", img_file);
+		fprintf(stderr, "%s\n", strerror(errRead));
+		exit(2);
 	}
 	superblock_summary();
+	group_summary();
+	bfree();
+	ifree();
 }
 	
