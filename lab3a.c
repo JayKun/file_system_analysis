@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
 
 #define BLOCKSIZE 1024
 
@@ -29,6 +30,19 @@ int ifd;
 char* img_file;
 struct ext2_super_block superblock;
 struct ext2_group_desc group_desc;
+
+char* format_time(u_int32_t t){
+	time_t raw_time = t;
+	struct tm* timeinfo = gmtime(&raw_time); 
+	char* time_string = malloc(20*sizeof(char));
+	//char time_string[80];
+	if (strftime(time_string, 20, "%m/%d/%y %H:%M:%S", timeinfo) == 0) {
+		fprintf(stderr, "%s\n", "strftime() returned 0");
+		exit(EXIT_FAILURE);
+	}
+	return time_string;
+}
+
 
 void superblock_summary(){
 	pread(ifd, &superblock, 1024, 1024);
@@ -112,6 +126,37 @@ void ifree() {
 
 }
 
+void inode_summary(){
+	struct ext2_inode inode;
+	unsigned int i = 0;
+	for(i =0; i<superblock.s_inodes_count; i++){
+		pread(ifd, &inode, sizeof(struct ext2_inode), 5*BLOCKSIZE+i*sizeof(struct ext2_inode));
+		// inode number
+		int inode_number = i;
+		
+		//fle type
+		char file_type;
+		short mode = inode.i_mode;
+		if(mode&0x8000) file_type = 'f';
+		else if(mode&0x4000) file_type = 'd';
+		else if(mode&0xA000) file_type = 's';
+		else file_type='?'; 
+		
+		int owner = inode.i_uid;
+		int group = inode.i_gid;
+		int link_count = inode.i_links_count;
+		char* time_last_change = format_time(inode.i_ctime);
+		char* mod_time = format_time(inode.i_mtime);
+		char* time_last_access = format_time(inode.i_atime);
+		int file_size = inode.i_size;
+		int num_blocks = inode.i_blocks;
+		if(file_type!='?')
+			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d\n", inode_number,file_type,mode,owner,group,link_count,time_last_change,mod_time,time_last_access,file_size,num_blocks);
+	}
+
+}
+
+
 int main(int argc, char* argv[]) {
 	img_file = NULL; 
 	if(argc != 2) {
@@ -134,5 +179,6 @@ int main(int argc, char* argv[]) {
 	group_summary();
 	bfree();
 	ifree();
+	inode_summary();
 }
 	
