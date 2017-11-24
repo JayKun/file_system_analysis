@@ -160,9 +160,9 @@ void inode_summary(){
 		char* time_last_access = format_time(inode.i_atime);
 		int file_size = inode.i_size;
 		int num_blocks = inode.i_blocks;
-		
+			
 		if (file_type != '?')
-			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks);
+			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks, inode.i_block[0], inode.i_block[1], inode.i_block[2], inode.i_block[3], inode.i_block[4], inode.i_block[5], inode.i_block[6], inode.i_block[7], inode.i_block[8], inode.i_block[9], inode.i_block[10], inode.i_block[11], inode.i_block[12], inode.i_block[13], inode.i_block[14]);
 	}
 
 }
