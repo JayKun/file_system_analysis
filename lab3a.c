@@ -34,7 +34,7 @@ struct ext2_group_desc group_desc;
 char* format_time(u_int32_t t){
 	time_t raw_time = t;
 	struct tm* timeinfo = gmtime(&raw_time); 
-	char* time_string = malloc(20*sizeof(char));
+	char* time_string = malloc(20 * sizeof(char));
 	//char time_string[80];
 	if (strftime(time_string, 20, "%m/%d/%y %H:%M:%S", timeinfo) == 0) {
 		fprintf(stderr, "%s\n", "strftime() returned 0");
@@ -108,7 +108,7 @@ void bfree() {
 
 void ifree() {
 	int num_bytes = superblock.s_blocks_count / 8;
-	char* inode_array = (char*)malloc(num_bytes);
+	char* inode_array = (char*)malloc(num_bytes);	
 	pread(ifd, inode_array, num_bytes, group_desc.bg_inode_bitmap * (1024 << superblock.s_log_block_size)); // offset is block number * block size
 	
 	for (int i = 0; i < num_bytes; i++) {
@@ -121,15 +121,14 @@ void ifree() {
 			}
 		}
 	}
-	
-	free(inode_array);
 
+	free(inode_array);
 }
 
 void inode_summary(){
 	struct ext2_inode inode;
 	unsigned int i = 0;
-	for (i = 0; i < superblock.s_inodes_count; i++){
+	for (i = 0; i < superblock.s_inodes_count; i++) {
 		pread(ifd, &inode, sizeof(struct ext2_inode), 5 * BLOCKSIZE + i * sizeof(struct ext2_inode));
 		// inode number
 		int inode_number = i + 1;
@@ -143,6 +142,28 @@ void inode_summary(){
 
 		else if (mode & 0x4000) {
 			file_type = 'd';
+			
+			// DIRENT
+			struct ext2_dir_entry* dir_entry;
+			char temp_block[1024 << superblock.s_log_block_size];		
+			
+			pread(ifd, temp_block, 1024 << superblock.s_log_block_size, inode.i_block[0] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
+
+			dir_entry = (struct ext2_dir_entry*)temp_block; // first directory entry in list starts at beginning of first block
+
+			int offset = 0;
+			while (offset < (1024 << superblock.s_log_block_size)) { // contained within one block 	
+				char* name = (char*)malloc((dir_entry->name_len + 1) * sizeof(char));
+				memcpy(name, dir_entry->name, dir_entry->name_len);
+				name[dir_entry->name_len] = '\0';
+				
+				if (dir_entry->inode != 0) {	
+					fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
+				}
+				offset += dir_entry->rec_len; // start of next entry
+				dir_entry = (void*)dir_entry + dir_entry->rec_len;
+				free(name);
+			}
 		}
 
 		else if (mode & 0xA000) {
@@ -164,9 +185,7 @@ void inode_summary(){
 		if (file_type != '?')
 			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks, inode.i_block[0], inode.i_block[1], inode.i_block[2], inode.i_block[3], inode.i_block[4], inode.i_block[5], inode.i_block[6], inode.i_block[7], inode.i_block[8], inode.i_block[9], inode.i_block[10], inode.i_block[11], inode.i_block[12], inode.i_block[13], inode.i_block[14]);
 	}
-
 }
-
 
 int main(int argc, char* argv[]) {
 	img_file = NULL; 
