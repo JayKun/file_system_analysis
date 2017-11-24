@@ -129,19 +129,29 @@ void ifree() {
 void inode_summary(){
 	struct ext2_inode inode;
 	unsigned int i = 0;
-	for(i =0; i<superblock.s_inodes_count; i++){
-		pread(ifd, &inode, sizeof(struct ext2_inode), 5*BLOCKSIZE+i*sizeof(struct ext2_inode));
+	for (i = 0; i < superblock.s_inodes_count; i++){
+		pread(ifd, &inode, sizeof(struct ext2_inode), 5 * BLOCKSIZE + i * sizeof(struct ext2_inode));
 		// inode number
-		int inode_number = i;
+		int inode_number = i + 1;
 		
-		//fle type
+		// file type
 		char file_type;
 		short mode = inode.i_mode;
-		if(mode&0x8000) file_type = 'f';
-		else if(mode&0x4000) file_type = 'd';
-		else if(mode&0xA000) file_type = 's';
-		else file_type='?'; 
-		
+		if (mode & 0x8000) {
+			file_type = 'f';
+		}
+
+		else if (mode & 0x4000) {
+			file_type = 'd';
+		}
+
+		else if (mode & 0xA000) {
+			file_type = 's';
+		}
+
+		else file_type = '?'; 
+	
+		mode = mode & 0xFFF;	
 		int owner = inode.i_uid;
 		int group = inode.i_gid;
 		int link_count = inode.i_links_count;
@@ -150,8 +160,9 @@ void inode_summary(){
 		char* time_last_access = format_time(inode.i_atime);
 		int file_size = inode.i_size;
 		int num_blocks = inode.i_blocks;
-		if(file_type!='?')
-			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d\n", inode_number,file_type,mode,owner,group,link_count,time_last_change,mod_time,time_last_access,file_size,num_blocks);
+		
+		if (file_type != '?')
+			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks);
 	}
 
 }
