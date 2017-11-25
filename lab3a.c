@@ -194,11 +194,11 @@ void inode_summary(){
 			pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12] * (1024 << superblock.s_log_block_size));
 
 			for (int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-				fprintf(stderr, "inode_num: %d \n", inode_number);	
 				if (block_ids[k] == 0) {
-					break;
+					continue;
 				}
 
+				fprintf(stderr, "block_id is: %d \n", block_ids[k]);
 				int offset = 0;
 				while (offset < (1024 << superblock.s_log_block_size)) {
 					pread(ifd, &dir_entry_p, sizeof(struct ext2_dir_entry), block_ids[k] * (1024 << superblock.s_log_block_size) + offset);
@@ -221,7 +221,7 @@ void inode_summary(){
 				
 				for (int kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
 					if (block_ids[kk] == 0) {
-						break;
+						continue;
 					}
 
 					int offset = 0;
