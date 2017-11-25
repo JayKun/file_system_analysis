@@ -174,58 +174,7 @@ void inode_summary(){
 					free(name);
 				}
 			}
-			// Indirect_blocks
-			// Primary
 			
-			if (inode.i_block[12] > 0) {
-				struct ext2_dir_entry dir_entry_p;
-				int *block_ids = malloc(1024 << superblock.s_log_block_size);
-				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12] * (1024 << superblock.s_log_block_size));
-
-				for (int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-					fprintf(stderr, "inode_num: %d \n", inode_number);	
-					if (block_ids[k] == 0) {
-						break;
-					}
-
-					int offset = 0;
-					while (offset < (1024 << superblock.s_log_block_size)) {
-						pread(ifd, &dir_entry_p, sizeof(struct ext2_dir_entry), block_ids[k] * (1024 << superblock.s_log_block_size) + offset);
-						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 12+k, inode.i_block[12], block_ids[k]);
-						offset += dir_entry_p.rec_len;
-					}
-				}
-				free(block_ids);
-			}
-			
-			// Double
-			if (inode.i_block[13] > 0) {
-				struct ext2_dir_entry dir_entry_d;
-				int *block_ids = malloc(1024 << superblock.s_log_block_size);
-				int *d_block_ids = malloc(1024 << superblock.s_log_block_size);
-				pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13] * (1024 << superblock.s_log_block_size));
-
-				for(int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-					pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
-					
-					for (int kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
-						if (block_ids[kk] == 0) {
-							break;
-						}
-
-						int offset = 0;
-						while (offset < (1024 << superblock.s_log_block_size)) {
-							pread(ifd, &dir_entry_d, sizeof(struct ext2_dir_entry), d_block_ids[kk] * (1024 << superblock.s_log_block_size) + offset);
-							fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 13 + kk, inode.i_block[13], d_block_ids[kk]);
-							offset += dir_entry_d.rec_len;
-						}
-					}
-
-				}
-				free(d_block_ids);
-				free(block_ids);
-				
-			}
 		}
 
 		else if (mode & 0xA000) {
@@ -235,6 +184,58 @@ void inode_summary(){
 		else file_type = '?'; 
 		if (file_type == '?') {
 			continue;
+		}
+
+		// Indirect_blocks
+		// Primary
+		if (inode.i_block[12] > 0) {
+			struct ext2_dir_entry dir_entry_p;
+			int *block_ids = malloc(1024 << superblock.s_log_block_size);
+			pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12] * (1024 << superblock.s_log_block_size));
+
+			for (int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
+				fprintf(stderr, "inode_num: %d \n", inode_number);	
+				if (block_ids[k] == 0) {
+					break;
+				}
+
+				int offset = 0;
+				while (offset < (1024 << superblock.s_log_block_size)) {
+					pread(ifd, &dir_entry_p, sizeof(struct ext2_dir_entry), block_ids[k] * (1024 << superblock.s_log_block_size) + offset);
+					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 12+k, inode.i_block[12], block_ids[k]);
+					offset += dir_entry_p.rec_len;
+				}
+			}
+			free(block_ids);
+		}
+		
+		// Double
+		if (inode.i_block[13] > 0) {
+			struct ext2_dir_entry dir_entry_d;
+			int *block_ids = malloc(1024 << superblock.s_log_block_size);
+			int *d_block_ids = malloc(1024 << superblock.s_log_block_size);
+			pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13] * (1024 << superblock.s_log_block_size));
+
+			for(int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
+				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
+				
+				for (int kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
+					if (block_ids[kk] == 0) {
+						break;
+					}
+
+					int offset = 0;
+					while (offset < (1024 << superblock.s_log_block_size)) {
+						pread(ifd, &dir_entry_d, sizeof(struct ext2_dir_entry), d_block_ids[kk] * (1024 << superblock.s_log_block_size) + offset);
+						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 13 + kk, inode.i_block[13], d_block_ids[kk]);
+						offset += dir_entry_d.rec_len;
+					}
+				}
+
+			}
+			free(d_block_ids);
+			free(block_ids);
+			
 		}
 
 		mode = mode & 0xFFF;	
