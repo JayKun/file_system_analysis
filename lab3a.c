@@ -189,47 +189,36 @@ void inode_summary(){
 		// Indirect_blocks
 		// Primary
 		if (inode.i_block[12] > 0) {
-			struct ext2_dir_entry dir_entry_p;
 			int *block_ids = malloc(1024 << superblock.s_log_block_size);
 			pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12] * (1024 << superblock.s_log_block_size));
 
 			for (int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-				if (block_ids[k] == 0) {
+				if (block_ids[k] == 0) 
 					continue;
-				}
-
-				fprintf(stderr, "block_id is: %d \n", block_ids[k]);
-				int offset = 0;
-				while (offset < (1024 << superblock.s_log_block_size)) {
-					pread(ifd, &dir_entry_p, sizeof(struct ext2_dir_entry), block_ids[k] * (1024 << superblock.s_log_block_size) + offset);
-					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 12+k, inode.i_block[12], block_ids[k]);
-					offset += dir_entry_p.rec_len;
-				}
+				fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 12+k, inode.i_block[12], block_ids[k]);
 			}
 			free(block_ids);
 		}
 		
 		// Double
 		if (inode.i_block[13] > 0) {
-			struct ext2_dir_entry dir_entry_d;
 			int *block_ids = malloc(1024 << superblock.s_log_block_size);
 			int *d_block_ids = malloc(1024 << superblock.s_log_block_size);
 			pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13] * (1024 << superblock.s_log_block_size));
-
-			for(int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
+			int k;
+			for(k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
+				if(d_block_ids[k]==0)
+					continue;
+				fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 268+k, inode.i_block[13], d_block_ids[k]);
 				
-				for (int kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
+				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
+				int kk;
+				for (kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
 					if (block_ids[kk] == 0) {
 						continue;
 					}
 
-					int offset = 0;
-					while (offset < (1024 << superblock.s_log_block_size)) {
-						pread(ifd, &dir_entry_d, sizeof(struct ext2_dir_entry), d_block_ids[kk] * (1024 << superblock.s_log_block_size) + offset);
-						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 13 + kk, inode.i_block[13], d_block_ids[kk]);
-						offset += dir_entry_d.rec_len;
-					}
+					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 268 + kk, d_block_ids[k], block_ids[kk]);
 				}
 
 			}
