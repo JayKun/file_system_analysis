@@ -198,7 +198,7 @@ void inode_summary(){
 				int block_offset = 1024*inode.i_block[12];
 				while(offset < (1024 << superblock.s_log_block_size)){
 					pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), block_ids[k]*(1024<<superblock.s_log_block_size)+offset);
-					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, block_offset, inode.i_block[12]+1, block_ids[k]+1);
+					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, block_ids[k], inode.i_block[12], block_ids[k]);
 					offset += dir_entry.rec_len;
 					block_offset += dir_entry.rec_len;
 				}
