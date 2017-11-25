@@ -145,24 +145,29 @@ void inode_summary(){
 			
 			// DIRENT
 			struct ext2_dir_entry* dir_entry;
-			char temp_block[1024 << superblock.s_log_block_size];		
-			
-			pread(ifd, temp_block, 1024 << superblock.s_log_block_size, inode.i_block[0] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
+			int n_blocks_data = inode.i_blocks / (2<< superblock.s_log_block_size);
+			int j = 0;
+			for(j=0; j<n_blocks_data; j++){
+				char temp_block[1024 << superblock.s_log_block_size];		
+				pread(ifd, temp_block, 1024 << superblock.s_log_block_size*n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
 
-			dir_entry = (struct ext2_dir_entry*)temp_block; // first directory entry in list starts at beginning of first block
+				dir_entry = (struct ext2_dir_entry*)temp_block; // first directory entry in list starts at beginning of first block
 
-			int offset = 0;
-			while (offset < (1024 << superblock.s_log_block_size)) { // contained within one block 	
-				char* name = (char*)malloc((dir_entry->name_len + 1) * sizeof(char));
-				memcpy(name, dir_entry->name, dir_entry->name_len);
-				name[dir_entry->name_len] = '\0';
-				
-				if (dir_entry->inode != 0) {	
-					fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
+				int offset = 0;
+				int block_offset = 1024 * inode.i_block[j];
+				while (offset < (1024 << superblock.s_log_block_size)) { // contained within one block 	
+					char* name = (char*)malloc((dir_entry->name_len + 1) * sizeof(char));
+					memcpy(name, dir_entry->name, dir_entry->name_len);
+					name[dir_entry->name_len] = '\0';
+					
+					if (dir_entry->inode != 0) {	
+						fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, block_offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
+					}
+					offset += dir_entry->rec_len; // start of next entry
+					block_offset += dir_entry->rec_len;
+					dir_entry = (void*)dir_entry + dir_entry->rec_len;
+					free(name);
 				}
-				offset += dir_entry->rec_len; // start of next entry
-				dir_entry = (void*)dir_entry + dir_entry->rec_len;
-				free(name);
 			}
 		}
 
@@ -175,7 +180,7 @@ void inode_summary(){
 		mode = mode & 0xFFF;	
 		int owner = inode.i_uid;
 		int group = inode.i_gid;
-		int link_count = inode.i_links_count;
+	int link_count = inode.i_links_count;
 		char* time_last_change = format_time(inode.i_ctime);
 		char* mod_time = format_time(inode.i_mtime);
 		char* time_last_access = format_time(inode.i_atime);
