@@ -149,8 +149,10 @@ void inode_summary(){
 			int j = 0;
 			for(j=0; j<n_blocks_data; j++){
 				char temp_block[1024 << superblock.s_log_block_size];		
-				pread(ifd, temp_block, 1024 << superblock.s_log_block_size*n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
-
+				int err_read = pread(ifd, temp_block, 1024 << superblock.s_log_block_size*n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
+				if(err_read == -1){
+					fprintf(stderr, "Error with pread()\n"); 
+				}
 				dir_entry = (struct ext2_dir_entry*)temp_block; // first directory entry in list starts at beginning of first block
 
 				int offset = 0;
@@ -159,7 +161,8 @@ void inode_summary(){
 					char* name = (char*)malloc((dir_entry->name_len + 1) * sizeof(char));
 					memcpy(name, dir_entry->name, dir_entry->name_len);
 					name[dir_entry->name_len] = '\0';
-					
+					if(dir_entry->name_len==0)
+						break;
 					if (dir_entry->inode != 0) {	
 						fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, block_offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
 					}
@@ -176,7 +179,15 @@ void inode_summary(){
 		}
 
 		else file_type = '?'; 
-	
+		if( file_type == '?'){
+			continue;
+		}
+
+		// 12 blocks
+		
+
+
+
 		mode = mode & 0xFFF;	
 		int owner = inode.i_uid;
 		int group = inode.i_gid;
@@ -186,10 +197,14 @@ void inode_summary(){
 		char* time_last_access = format_time(inode.i_atime);
 		int file_size = inode.i_size;
 		int num_blocks = inode.i_blocks;
-			
-		if (file_type != '?')
-			fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks, inode.i_block[0], inode.i_block[1], inode.i_block[2], inode.i_block[3], inode.i_block[4], inode.i_block[5], inode.i_block[6], inode.i_block[7], inode.i_block[8], inode.i_block[9], inode.i_block[10], inode.i_block[11], inode.i_block[12], inode.i_block[13], inode.i_block[14]);
+	
+		fprintf(stdout, "INODE,%d,%c,0%o,%d,%d,%d,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", inode_number, file_type, mode, owner, group, link_count, time_last_change, mod_time, time_last_access, file_size, num_blocks, inode.i_block[0], inode.i_block[1], inode.i_block[2], inode.i_block[3], inode.i_block[4], inode.i_block[5], inode.i_block[6], inode.i_block[7], inode.i_block[8], inode.i_block[9], inode.i_block[10], inode.i_block[11], inode.i_block[12], inode.i_block[13], inode.i_block[14]);
+		free(mod_time);
+		free(time_last_change);
+		free(time_last_access);
 	}
+
+
 }
 
 int main(int argc, char* argv[]) {
@@ -215,5 +230,6 @@ int main(int argc, char* argv[]) {
 	bfree();
 	ifree();
 	inode_summary();
+	exit(0);
 }
 	
