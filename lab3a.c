@@ -127,8 +127,7 @@ void ifree() {
 
 void inode_summary(){
 	struct ext2_inode inode;
-	unsigned int i = 0;
-	for (i = 0; i < superblock.s_inodes_count; i++) {
+	for (unsigned int i = 0; i < superblock.s_inodes_count; i++) {
 		pread(ifd, &inode, sizeof(struct ext2_inode), 5 * BLOCKSIZE + i * sizeof(struct ext2_inode));
 		// inode number
 		int inode_number = i + 1;
@@ -145,12 +144,11 @@ void inode_summary(){
 			
 			// DIRENT
 			struct ext2_dir_entry* dir_entry;
-			int n_blocks_data = inode.i_blocks / (2<< superblock.s_log_block_size);
-			int j = 0;
-			for(j=0; j<n_blocks_data; j++){
+			int n_blocks_data = inode.i_blocks / (2 << superblock.s_log_block_size);
+			for (int j = 0; j < n_blocks_data; j++) {
 				char temp_block[1024 << superblock.s_log_block_size];		
-				int err_read = pread(ifd, temp_block, 1024 << superblock.s_log_block_size*n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
-				if(err_read == -1){
+				int err_read = pread(ifd, temp_block, 1024 << superblock.s_log_block_size * n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
+				if (err_read == -1) {
 					fprintf(stderr, "Error with pread()\n"); 
 				}
 				dir_entry = (struct ext2_dir_entry*)temp_block; // first directory entry in list starts at beginning of first block
@@ -161,10 +159,10 @@ void inode_summary(){
 					char* name = (char*)malloc((dir_entry->name_len + 1) * sizeof(char));
 					memcpy(name, dir_entry->name, dir_entry->name_len);
 					name[dir_entry->name_len] = '\0';
-					if(dir_entry->name_len==0)
+					if (dir_entry->name_len == 0)
 						break;
 					if (dir_entry->inode != 0) {	
-						fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, block_offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
+						fprintf(stdout, "DIRENT,%d,%d,%d,%d,%d,\'%s\'\n", inode_number, offset, dir_entry->inode, dir_entry->rec_len, dir_entry->name_len, name);
 					}
 					offset += dir_entry->rec_len; // start of next entry
 					block_offset += dir_entry->rec_len;
@@ -179,25 +177,27 @@ void inode_summary(){
 		}
 
 		else file_type = '?'; 
-		if( file_type == '?'){
+		if (file_type == '?') {
 			continue;
 		}
 
 		// Indirect_blocks
 		// Primary
 		
-		if(inode.i_block[12]>0){
+		if (inode.i_block[12] > 0) {
 			struct ext2_dir_entry dir_entry;
-			int *block_ids = malloc (1024 << superblock.s_log_block_size);
-			pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12]*(1024 << superblock.s_log_block_size));
-			int k;
-			for(k=0; k<(1024<<superblock.s_log_block_size)/4; k++){
+			int *block_ids = malloc(1024 << superblock.s_log_block_size);
+			pread(ifd, block_ids, 1024 << superblock.s_log_block_size, inode.i_block[12] * (1024 << superblock.s_log_block_size));
+
+			for (int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
 				fprintf(stderr, "inode_num: %d \n", inode_number);	
-				if(block_ids[k]==0)
+				if (block_ids[k] == 0) {
 					break;
-				int offset =0;
-				while(offset < (1024 << superblock.s_log_block_size)){
-					pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), block_ids[k]*(1024<<superblock.s_log_block_size)+offset);
+				}
+
+				int offset = 0;
+				while (offset < (1024 << superblock.s_log_block_size)) {
+					pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), block_ids[k] * (1024 << superblock.s_log_block_size) + offset);
 					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 12+k, inode.i_block[12], block_ids[k]);
 					offset += dir_entry.rec_len;
 				}
@@ -206,22 +206,24 @@ void inode_summary(){
 		}
 		
 		// Double
-		if(inode.i_block[13]>0){
+		if (inode.i_block[13] > 0) {
 			struct ext2_dir_entry dir_entry;
-			int *block_ids = malloc (1024 << superblock.s_log_block_size);
+			int *block_ids = malloc(1024 << superblock.s_log_block_size);
 			int *d_block_ids = malloc(1024 << superblock.s_log_block_size);
-			pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13]*(1024 << superblock.s_log_block_size));
-			int k;
-			for(k=0; k<(1024<< superblock.s_log_block_size)/4; k++){
-				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k]*(1024 << superblock.s_log_block_size));
-				int kk;
-				for(kk=0; kk<(1024<<superblock.s_log_block_size)/4; kk++){
-					if(block_ids[kk]==0)
+			pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13] * (1024 << superblock.s_log_block_size));
+
+			for(int k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
+				pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
+				
+				for (int kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
+					if (block_ids[kk] == 0) {
 						break;
+					}
+
 					int offset = 0;
-					while(offset < (1024 << superblock.s_log_block_size)){
-						pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), d_block_ids[kk]*(1024<<superblock.s_log_block_size)+offset);
-						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 13+kk, inode.i_block[13], d_block_ids[kk]);
+					while (offset < (1024 << superblock.s_log_block_size)) {
+						pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), d_block_ids[kk] * (1024 << superblock.s_log_block_size) + offset);
+						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 13 + kk, inode.i_block[13], d_block_ids[kk]);
 						offset += dir_entry.rec_len;
 					}
 				}
