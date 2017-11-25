@@ -12,7 +12,7 @@
 
 default:
 	gcc -g -Wall -Wextra lab3a.c -o lab3a
-clean:
-	rm lab3a *tar.gz 
-dist:
+clean: default
+	-rm lab3a *tar.gz 
+dist: default
 	tar -czvf lab3a-604606304.tar.gz lab3a.c README Makefile ext2_fs.h

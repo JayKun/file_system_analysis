@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
 	if(ifd < 0) {
 		fprintf(stderr, "ERROR opening image file. Failed to open %s\n", img_file);
 		fprintf(stderr, "%s\n", strerror(errRead));
-		exit(2);
+		exit(1);
 	}
 	superblock_summary();
 	group_summary();
