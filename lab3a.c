@@ -144,8 +144,12 @@ void inode_summary(){
 			
 			// DIRENT
 			struct ext2_dir_entry* dir_entry;
-			int n_blocks_data = inode.i_blocks / (2 << superblock.s_log_block_size);
-			for (int j = 0; j < n_blocks_data; j++) {
+		
+			for (int j = 0; j < EXT2_NDIR_BLOCKS; j++) {
+				if (inode.i_block[j] == 0) {
+					break;
+				}
+
 				char temp_block[1024 << superblock.s_log_block_size];		
 				int err_read = pread(ifd, temp_block, 1024 << superblock.s_log_block_size * n_blocks_data, inode.i_block[j] * (1024 << superblock.s_log_block_size)); // list of directory entries contained within blocks
 				if (err_read == -1) {
