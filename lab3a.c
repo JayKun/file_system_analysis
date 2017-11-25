@@ -207,7 +207,7 @@ void inode_summary(){
 			pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[13] * (1024 << superblock.s_log_block_size));
 			int k;
 			for(k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
-				if(d_block_ids[k]==0)
+				if(d_block_ids[k] == 0)
 					continue;
 				fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 268+k, inode.i_block[13], d_block_ids[k]);
 				
@@ -226,6 +226,45 @@ void inode_summary(){
 			free(block_ids);
 			
 		}
+		// Triple
+		if (inode.i_block[14] > 0) {
+			int *block_ids = malloc(1024 << superblock.s_log_block_size);
+			int *d_block_ids = malloc(1024 << superblock.s_log_block_size);
+			int *t_block_ids = malloc(1024 << superblock.s_log_block_size);
+			pread(ifd, t_block_ids, 1024 << superblock.s_log_block_size, inode.i_block[14] * (1024 << superblock.s_log_block_size));
+			int k;
+			for(k = 0; k < (1024 << superblock.s_log_block_size) / 4; k++) {
+				if(t_block_ids[k] == 0)
+					continue;
+				fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 3, 65804 + k, inode.i_block[14], t_block_ids[k]);
+				
+				pread(ifd, d_block_ids, 1024 << superblock.s_log_block_size, t_block_ids[k] * (1024 << superblock.s_log_block_size));
+				int kk;
+				for (kk = 0; kk < (1024 << superblock.s_log_block_size) / 4; kk++) {
+					if (d_block_ids[kk] == 0) {
+						continue;
+					}
+
+					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 2, 65804 + kk, t_block_ids[k], d_block_ids[kk]);
+					pread(ifd, block_ids, 1024 << superblock.s_log_block_size, d_block_ids[k] * (1024 << superblock.s_log_block_size));
+					int kkk;
+					for (kkk = 0; kkk < (1024 << superblock.s_log_block_size) / 4; kkk++) {
+						if (block_ids[kkk] == 0) {
+							continue;
+						}
+	
+						fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, 65804 + kkk, d_block_ids[kk], block_ids[kkk]);
+					}
+
+				
+				}
+
+			}
+			free(d_block_ids);
+			free(block_ids);
+			
+		}
+
 
 		mode = mode & 0xFFF;	
 		int owner = inode.i_uid;
