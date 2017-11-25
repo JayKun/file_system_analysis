@@ -183,15 +183,32 @@ void inode_summary(){
 			continue;
 		}
 
-		// 12 blocks
-		
-
-
+		// Indirect_blocks
+		// Primary
+		if(inode.i_block[12]>0){
+			struct ext2_dir_entry dir_entry;
+			int block_ids [1024 << superblock.s_log_block_size];
+			pread(ifd, &block_ids, sizeof(block_ids), inode.i_block[12]*1024 << superblock.s_log_block_size);
+			int k;
+			for(k=0; k<(1024<<superblock.s_log_block_size)/4; k++){
+				if(block_ids[k]==0)
+					break;
+				
+				int offset =0;
+				int block_offset = 1024*inode.i_block[12];
+				while(offset < (1024 << superblock.s_log_block_size)){
+					pread(ifd, &dir_entry, sizeof(struct ext2_dir_entry), block_ids[k]*(1024<<superblock.s_log_block_size)+offset);
+					fprintf(stdout, "INDIRECT,%d,%d,%d,%d,%d\n",inode_number, 1, block_offset, inode.i_block[12]+1, block_ids[k]+1);
+					offset += dir_entry.rec_len;
+					block_offset += dir_entry.rec_len;
+				}
+			}
+		}
 
 		mode = mode & 0xFFF;	
 		int owner = inode.i_uid;
 		int group = inode.i_gid;
-	int link_count = inode.i_links_count;
+		int link_count = inode.i_links_count;
 		char* time_last_change = format_time(inode.i_ctime);
 		char* mod_time = format_time(inode.i_mtime);
 		char* time_last_access = format_time(inode.i_atime);
